@@ -298,13 +298,55 @@ static ssize_t microp_led_blink_store(struct device *dev,
 {
 	struct led_classdev *led_cdev;
 	struct microp_led_data *ldata;
-	int val, ret;
+	int val, ret, off_timer_read, val_count;
 	uint8_t mode;
+        uint16_t off_timer;
 
-	val = -1;
-	sscanf(buf, "%u", &val);
-	if (val < 0 || val > 255)
-		return -EINVAL;
+        {
+                size_t i;
+                int prev_space = 1;
+
+                val_count = 0;
+
+                for (i = 0; i < strlen(buf); ++i) {
+                        if (buf[i] != ' ' && buf[i] != '\t' && prev_space) {
+                                prev_space = 0;
+                                ++val_count;
+                        }
+                        else if ((buf[i] == ' ') || (buf[i] == '\t'))
+                                prev_space = 1;
+                }
+        }
+
+        // Either specify the mode only, or mode and both on and off values, but not mode and on only.
+        // Needed for custom frequencies, disabled for now. We will accept both mode and off_timer values
+        // or just mode.
+        //if (val_count == 2)
+        //        return -EINVAL;
+
+        // Will indicate the mode to set.
+        val = -1;
+        // Will hold the number of LED flashes until the LED will shut down. Note: this is NOT the time in
+        // seconds, as the off_timer specifies the flash cycles and one flash cycle is 2 seconds by default.
+        // Thus, when blinking the LED with default values, off_timer * 2 will be the time in seconds after
+        // which the LED turns off and the maximum (default) value is 65535, which translates to
+        // 131070 seconds, or approximately 36 hours or 1.5 days...
+        // So, while the flashing cycles are not unlimited per se, it is very unlikely the user won't read
+        // notifications or otherwise turn the LED off for more than a day.
+        off_timer_read = -1;
+        off_timer = 0;
+
+        if (val_count == 1) {
+                sscanf(buf, "%d", &val);
+                off_timer_read = 0xFFFF;
+        }
+        else
+                sscanf(buf, "%d %u", &val, &off_timer_read);
+
+        if (val < 0 || val > 255 || off_timer_read < 0 || off_timer_read > 0xFFFF)
+                return -EINVAL;
+
+        printk(KERN_INFO "%s: blink val %d, off_timer_read %d", __func__, val, off_timer_read);
 
 	led_cdev = (struct led_classdev *)dev_get_drvdata(dev);
 	ldata = container_of(led_cdev, struct microp_led_data, ldev);
@@ -334,7 +376,10 @@ static ssize_t microp_led_blink_store(struct device *dev,
 	}
 	mutex_unlock(&ldata->led_data_mutex);
 
-	ret = microp_write_led_mode(led_cdev, mode, 0xffff);
+        // off_timer_read must be within uint16_t bounds, otherwise we would have reported -EINVAL.
+        off_timer = (uint16_t) off_timer_read;
+
+	ret = microp_write_led_mode(led_cdev, mode, off_timer);
 	if (ret)
 		pr_err("%s:%s set blink failed\n", __func__, led_cdev->name);
 
