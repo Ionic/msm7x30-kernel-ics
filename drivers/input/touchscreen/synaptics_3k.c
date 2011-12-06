@@ -280,6 +280,9 @@ static void synaptics_ts_work_func(struct work_struct *work)
 		if (finger_pressed == 0) {
 #ifdef CONFIG_TOUCHSCREEN_COMPATIBLE_REPORT
 			input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
+#ifdef CONFIG_ICS
+			input_report_key(ts->input_dev, BTN_TOUCH, 0);
+#endif
 #else
 			input_report_abs(ts->input_dev, ABS_MT_AMPLITUDE, 0);
 			input_report_abs(ts->input_dev, ABS_MT_POSITION, 1 << 31);
@@ -321,6 +324,10 @@ static void synaptics_ts_work_func(struct work_struct *work)
 						finger_data[loop_i][0]);
 					input_report_abs(ts->input_dev, ABS_MT_POSITION_Y,
 						finger_data[loop_i][1]);
+#ifdef CONFIG_ICS
+					input_report_key(ts->input_dev, BTN_TOUCH,
+						finger_data[loop_i][2] ? 1 : 0);
+#endif
 					input_mt_sync(ts->input_dev);
 #else
 					input_report_abs(ts->input_dev, ABS_MT_AMPLITUDE,
@@ -632,6 +639,9 @@ static int synaptics_ts_resume(struct i2c_client *client)
 
 #ifdef CONFIG_TOUCHSCREEN_COMPATIBLE_REPORT
 	input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
+#ifdef CONFIG_ICS
+	input_report_key(ts->input_dev, BTN_TOUCH, 0);
+#endif
 	input_sync(ts->input_dev);
 #else
 	input_report_abs(ts->input_dev, ABS_MT_AMPLITUDE, 0);
@@ -696,3 +706,4 @@ module_exit(synaptics_ts_exit);
 
 MODULE_DESCRIPTION("Synaptics Touchscreen Driver");
 MODULE_LICENSE("GPL");
+

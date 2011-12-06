@@ -556,7 +556,7 @@ static void insert_detect_work_func(struct work_struct *work)
 
 	state = switch_get_state(&hi->sdev);
 	state &= ~MASK_35MM_HEADSET;
-//	state |= BIT_HEADSET;
+	state |= BIT_35MM_HEADSET;
 
 	switch (mic) {
 	case HEADSET_TV_OUT:
@@ -937,15 +937,15 @@ static ssize_t debug_flag_store(struct device *dev,
 		switch_send_event(state, 0);
 	} else if (strncmp(buf, "35mm_mic", count - 1) == 0) {
 		HS_LOG("Headset simulation: 35mm_mic");
-		state = BIT_HEADSET;
+		state = BIT_HEADSET | BIT_35MM_HEADSET;
 		switch_send_event(state, 1);
 	} else if (strncmp(buf, "35mm_no_mic", count - 1) == 0) {
 		HS_LOG("Headset simulation: 35mm_no_mic");
-		state = BIT_HEADSET_NO_MIC;
+		state = BIT_HEADSET_NO_MIC | BIT_35MM_HEADSET;
 		switch_send_event(state, 1);
 	} else if (strncmp(buf, "35mm_tv_out", count - 1) == 0) {
 		HS_LOG("Headset simulation: 35mm_tv_out");
-		state = BIT_TV_OUT;
+		state = BIT_TV_OUT | BIT_35MM_HEADSET;
 		switch_send_event(state, 1);
 	} else if (strncmp(buf, "usb_audio", count - 1) == 0) {
 		HS_LOG("Headset simulation: usb_audio");
